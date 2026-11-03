@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Ordering System - Live Operations Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        code, pre { font-family: 'JetBrains Mono', monospace; }
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100">
+
+    <header class="h-16 border-b border-slate-800 bg-slate-900/90 px-6 flex items-center justify-between z-20">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-utensils"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg text-white leading-tight">FoodOps Central</h1>
+                <p class="text-xs text-slate-400">PostgreSQL Schema & UI Integration Sandbox</p>
+            </div>
+        </div>
+
+        <nav class="flex space-x-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/50">
+            <button onclick="switchTab('analytics')" id="tab-analytics" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm">
+                <i class="fa-solid fa-chart-pie mr-1.5"></i>Live Analytics
+            </button>
+            <button onclick="switchTab('orders')" id="tab-orders" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-receipt mr-1.5"></i>Orders Ledger
+            </button>
+            <button onclick="switchTab('fleet')" id="tab-fleet" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-motorcycle mr-1.5"></i>Delivery Fleet
+            </button>
+            <button onclick="switchTab('restaurants')" id="tab-restaurants" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
+                <i class="fa-solid fa-store mr-1.5"></i>Restaurants & Menu
+            </button>
+        </nav>
+
+        <div class="flex items-center space-x-3">
+            <div id="status-pill" class="px-2.5 py-1 rounded-full text-[10px] font-semibold border border-slate-700 text-slate-400 flex items-center">
+                <span id="status-dot" class="w-1.5 h-1.5 rounded-full bg-slate-500 mr-1.5"></span>
+                <span id="status-text">Not connected</span>
+            </div>
+            <button id="refresh-btn" onclick="loadAllData()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center shadow-md transition-all">
+                <i id="refresh-icon" class="fa-solid fa-rotate mr-2"></i> Refresh Data
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-950">
+
+        <!-- TAB 1: Live Analytics -->
+        <div id="view-analytics" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-panel p-5 rounded-2xl">
+                    <p class="text-xs font-medium text-slate-400 uppercase">Gross Platform Revenue</p>
+                    <h3 id="kpi-revenue" class="text-2xl font-bold text-white mt-1">—</h3>
+                    <p class="text-xs text-emerald-400 mt-2 font-medium"><i class="fa-solid fa-arrow-trend-up mr-1"></i> Live from ORDERS table</p>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl">
+                    <p class="text-xs font-medium text-slate-400 uppercase">Active Customers</p>
+                    <h3 id="kpi-customers" class="text-2xl font-bold text-white mt-1">—</h3>
+                    <p id="kpi-customers-sub" class="text-xs text-indigo-400 mt-2 font-medium">Distinct customers with orders</p>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl">
+                    <p class="text-xs font-medium text-slate-400 uppercase">Fleet Online</p>
+                    <h3 id="kpi-fleet" class="text-2xl font-bold text-white mt-1">—</h3>
+                    <p class="text-xs text-amber-400 mt-2 font-medium">Active dispatch ready</p>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl">
+                    <p class="text-xs font-medium text-slate-400 uppercase">Avg Order Value</p>
+                    <h3 id="kpi-aov" class="text-2xl font-bold text-white mt-1">—</h3>
+                    <p class="text-xs text-purple-400 mt-2 font-medium">Revenue ÷ number of orders</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-panel p-5 rounded-2xl">
+                    <h4 class="font-semibold text-sm text-slate-200 mb-1">Revenue by Food Category</h4>
+                    <p id="category-note" class="text-[11px] text-slate-500 mb-3">Sample data (no category endpoint connected)</p>
+                    <div class="h-64 relative"><canvas id="categoryChart"></canvas></div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl">
+                    <h4 class="font-semibold text-sm text-slate-200 mb-1">Restaurant Gross Share</h4>
+                    <p class="text-[11px] text-slate-500 mb-3">Calculated from /api/orders</p>
+                    <div class="h-64 relative"><canvas id="restaurantChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: Orders Ledger -->
+        <div id="view-orders" class="hidden space-y-6">
+            <div class="glass-panel p-5 rounded-2xl">
+                <h3 class="font-bold text-base text-white mb-1">Live Platform Orders Ledger</h3>
+                <p class="text-xs text-slate-400 mb-4">Powered by Flask API endpoint <code class="text-indigo-400">/api/orders</code></p>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-800 text-slate-400 uppercase">
+                            <tr>
+                                <th class="p-3">Order ID</th>
+                                <th class="p-3">Customer</th>
+                                <th class="p-3">Restaurant</th>
+                                <th class="p-3">Date</th>
+                                <th class="p-3 text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body" class="divide-y divide-slate-800 font-mono">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-500">Connecting to Flask server...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: Delivery Fleet -->
+        <div id="view-fleet" class="hidden space-y-6">
+            <div class="glass-panel p-5 rounded-2xl">
+                <h3 class="font-bold text-base text-white mb-1">Delivery Fleet Status</h3>
+                <p class="text-xs text-slate-400 mb-4">Powered by Flask API endpoint <code class="text-indigo-400">/api/fleet</code></p>
+                <div id="fleet-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <p class="text-slate-500 font-mono text-xs">Loading fleet drivers...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 4: Restaurants Catalog -->
+        <div id="view-restaurants" class="hidden space-y-6">
+            <div class="glass-panel p-5 rounded-2xl">
+                <h3 class="font-bold text-base text-white mb-1">Partner Restaurants Catalog</h3>
+                <p class="text-xs text-slate-400 mb-4">Powered by Flask API endpoint <code class="text-indigo-400">/api/restaurants</code></p>
+                <div id="restaurant-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <p class="text-slate-500 font-mono text-xs">Loading restaurants...</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Change this if your Flask server runs on a different host/port.
+        const API_BASE = 'http://127.0.0.1:5000/api';
+
+        const TAB_ACTIVE = "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm";
+        const TAB_IDLE = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all";
+
+        let categoryChart = null;
+        let restaurantChart = null;
+
+        const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#ec4899', '#3b82f6', '#8b5cf6', '#f43f5e'];
+
+        // ---------- helpers ----------
+        function esc(v) {
+            if (v === null || v === undefined) return '';
+            return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function money(n) {
+            return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function setStatus(state, text) {
+            const dot = document.getElementById('status-dot');
+            const pill = document.getElementById('status-pill');
+            const colors = {
+                idle:    ['bg-slate-500',  'text-slate-400',   'border-slate-700'],
+                loading: ['bg-amber-400',  'text-amber-400',   'border-amber-500/30'],
+                ok:      ['bg-emerald-400','text-emerald-400', 'border-emerald-500/30'],
+                error:   ['bg-rose-400',   'text-rose-400',    'border-rose-500/30']
+            };
+            const all = Object.values(colors).flat();
+            dot.classList.remove(...all.filter(c => c.startsWith('bg-')));
+            pill.classList.remove(...all.filter(c => !c.startsWith('bg-')));
+            const [bg, txt, border] = colors[state];
+            dot.classList.add(bg);
+            pill.classList.add(txt, border);
+            document.getElementById('status-text').textContent = text;
+        }
+
+        async function fetchJSON(path) {
+            const res = await fetch(`${API_BASE}/${path}`, { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+            const data = await res.json();
+            if (!Array.isArray(data)) {
+                const hint = data && data.error ? data.error : 'Response is not a JSON array';
+                throw new Error(hint);
+            }
+            return data;
+        }
+
+        function errorBox(path, err) {
+            return `<div class="text-rose-400 text-xs font-mono space-y-1">
+                <p><i class="fa-solid fa-triangle-exclamation mr-1"></i> Could not load <b>${esc(API_BASE)}/${esc(path)}</b></p>
+                <p class="text-slate-400">${esc(err.message)}</p>
+                <p class="text-slate-500">Check: Flask is running, flask-cors is enabled, and the endpoint returns a JSON array. Open DevTools (F12) → Console for details.</p>
+            </div>`;
+        }
+
+        // ---------- tabs ----------
+        function switchTab(tabId) {
+            ['analytics', 'orders', 'fleet', 'restaurants'].forEach(t => {
+                document.getElementById(`view-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).className = TAB_IDLE;
+            });
+            document.getElementById(`view-${tabId}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabId}`).className = TAB_ACTIVE;
+        }
+
+        // ---------- renderers ----------
+        function renderOrders(orders) {
+            const body = document.getElementById('orders-table-body');
+            if (orders.length === 0) {
+                body.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">No orders found.</td></tr>`;
+                return;
+            }
+            body.innerHTML = orders.map(o => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3 text-indigo-400 font-bold">#${esc(o.order_id)}</td>
+                    <td class="p-3">${esc(o.customer_name)}</td>
+                    <td class="p-3">${esc(o.restaurant_name)}</td>
+                    <td class="p-3 text-slate-400">${esc(o.order_date_time)}</td>
+                    <td class="p-3 text-right text-emerald-400 font-bold">${money(o.tot_amount)}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderFleet(fleet) {
+            const c = document.getElementById('fleet-container');
+            if (fleet.length === 0) {
+                c.innerHTML = `<p class="text-slate-500 font-mono text-xs">No drivers found.</p>`;
+                return;
+            }
+            c.innerHTML = fleet.map(f => {
+                const online = f.is_available === true || f.is_available === 'true' || f.is_available === 1;
+                return `
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 font-mono text-xs space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-white text-sm">${esc(f.driver_name)}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${online ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+                            ${online ? 'ONLINE' : 'BUSY'}
+                        </span>
+                    </div>
+                    <div class="text-slate-400">Vehicle: <span class="text-white">${esc(f.vehicle_no)}</span></div>
+                    <div class="text-slate-400">License: <span class="text-white">${esc(f.license_id)}</span></div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderRestaurants(rests) {
+            const c = document.getElementById('restaurant-container');
+            if (rests.length === 0) {
+                c.innerHTML = `<p class="text-slate-500 font-mono text-xs">No restaurants found.</p>`;
+                return;
+            }
+            c.innerHTML = rests.map(r => `
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 font-mono text-xs space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-white text-sm">${esc(r.restaurant_name)}</span>
+                        <span class="text-amber-400 font-bold">★ ${esc(r.rating)}</span>
+                    </div>
+                    <div class="text-slate-400">Cuisine: <span class="text-white">${esc(r.cuisine_type)}</span></div>
+                    <div class="text-slate-400">Total Menu Items: <span class="text-indigo-400 font-bold">${esc(r.total_items)} items</span></div>
+                </div>
+            `).join('');
+        }
+
+        function renderOrderKPIs(orders) {
+            const revenue = orders.reduce((s, o) => s + Number(o.tot_amount || 0), 0);
+            const customers = new Set(orders.map(o => o.customer_name)).size;
+            document.getElementById('kpi-revenue').textContent = money(revenue);
+            document.getElementById('kpi-customers').textContent = `${customers} Account${customers === 1 ? '' : 's'}`;
+            document.getElementById('kpi-aov').textContent = orders.length ? money(revenue / orders.length) : money(0);
+
+            // Restaurant share doughnut from real orders
+            const byRest = {};
+            orders.forEach(o => {
+                const k = o.restaurant_name || 'Unknown';
+                byRest[k] = (byRest[k] || 0) + Number(o.tot_amount || 0);
+            });
+            const labels = Object.keys(byRest);
+            const values = Object.values(byRest);
+            if (restaurantChart) {
+                restaurantChart.data.labels = labels;
+                restaurantChart.data.datasets[0].data = values;
+                restaurantChart.update();
+            }
+        }
+
+        function renderFleetKPI(fleet) {
+            const online = fleet.filter(f => f.is_available === true || f.is_available === 'true' || f.is_available === 1).length;
+            document.getElementById('kpi-fleet').textContent = `${online} / ${fleet.length} Drivers`;
+        }
+
+        // ---------- main loader ----------
+        async function loadAllData() {
+            const btn = document.getElementById('refresh-btn');
+            const icon = document.getElementById('refresh-icon');
+            btn.disabled = true;
+            btn.classList.add('opacity-70', 'cursor-not-allowed');
+            icon.classList.add('fa-spin');
+            setStatus('loading', 'Loading...');
+
+            // Each endpoint is fetched independently so one failure doesn't block the others.
+            const [oRes, fRes, rRes] = await Promise.allSettled([
+                fetchJSON('orders'),
+                fetchJSON('fleet'),
+                fetchJSON('restaurants')
+            ]);
+
+            let failures = 0;
+
+            if (oRes.status === 'fulfilled') {
+                renderOrders(oRes.value);
+                renderOrderKPIs(oRes.value);
+            } else {
+                failures++;
+                console.error('Orders failed:', oRes.reason);
+                document.getElementById('orders-table-body').innerHTML =
+                    `<tr><td colspan="5" class="p-4">${errorBox('orders', oRes.reason)}</td></tr>`;
+            }
+
+            if (fRes.status === 'fulfilled') {
+                renderFleet(fRes.value);
+                renderFleetKPI(fRes.value);
+            } else {
+                failures++;
+                console.error('Fleet failed:', fRes.reason);
+                document.getElementById('fleet-container').innerHTML = errorBox('fleet', fRes.reason);
+            }
+
+            if (rRes.status === 'fulfilled') {
+                renderRestaurants(rRes.value);
+            } else {
+                failures++;
+                console.error('Restaurants failed:', rRes.reason);
+                document.getElementById('restaurant-container').innerHTML = errorBox('restaurants', rRes.reason);
+            }
+
+            if (failures === 0) {
+                setStatus('ok', 'Connected · ' + new Date().toLocaleTimeString());
+            } else if (failures === 3) {
+                setStatus('error', 'API unreachable');
+            } else {
+                setStatus('error', `${failures} of 3 endpoints failed`);
+            }
+
+            icon.classList.remove('fa-spin');
+            btn.disabled = false;
+            btn.classList.remove('opacity-70', 'cursor-not-allowed');
+        }
+
+        // ---------- init ----------
+        window.addEventListener('DOMContentLoaded', () => {
+            categoryChart = new Chart(document.getElementById('categoryChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: ['Main Course', 'Fast Food', 'Starter', 'Tiffin', 'Bread'],
+                    datasets: [{ data: [1230, 450, 180, 150, 120], backgroundColor: PALETTE, borderRadius: 6 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(148,163,184,0.1)' } }
+                    }
+                }
+            });
+
+            restaurantChart = new Chart(document.getElementById('restaurantChart').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{ data: [], backgroundColor: PALETTE, borderWidth: 0 }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'right', labels: { color: '#94a3b8', font: { size: 11 } } } }
+                }
+            });
+
+            loadAllData();
+        });
+    </script>
+</body>
+</html>
