@@ -16,37 +16,30 @@
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
+        .inp { background:#0f172a; border:1px solid #334155; border-radius:.5rem; padding:.45rem .75rem; font-size:.75rem; color:#fff; width:100%; }
+        .inp:focus { outline:none; border-color:#6366f1; }
+        .lbl { display:block; font-size:.7rem; color:#94a3b8; margin:.6rem 0 .2rem; }
+        .btn { padding:.45rem .9rem; border-radius:.5rem; font-size:.75rem; font-weight:600; color:#fff; background:#4f46e5; }
+        .btn:hover { background:#6366f1; }
+        #nav::-webkit-scrollbar { height: 4px; }
     </style>
 </head>
 <body class="h-full flex flex-col overflow-hidden bg-slate-950 text-slate-100">
 
-    <header class="h-16 border-b border-slate-800 bg-slate-900/90 px-6 flex items-center justify-between z-20">
-        <div class="flex items-center space-x-3">
+    <header class="h-16 border-b border-slate-800 bg-slate-900/90 px-6 flex items-center justify-between z-20 gap-3">
+        <div class="flex items-center space-x-3 shrink-0">
             <div class="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/30">
                 <i class="fa-solid fa-utensils"></i>
             </div>
             <div>
                 <h1 class="font-bold text-lg text-white leading-tight">FoodOps Central</h1>
-                <p class="text-xs text-slate-400">PostgreSQL Schema & UI Integration Sandbox</p>
+                <p class="text-xs text-slate-400 hidden sm:block">PostgreSQL Schema & UI Integration Sandbox</p>
             </div>
         </div>
 
-        <nav class="flex space-x-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/50">
-            <button onclick="switchTab('analytics')" id="tab-analytics" class="px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm">
-                <i class="fa-solid fa-chart-pie mr-1.5"></i>Live Analytics
-            </button>
-            <button onclick="switchTab('orders')" id="tab-orders" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
-                <i class="fa-solid fa-receipt mr-1.5"></i>Orders Ledger
-            </button>
-            <button onclick="switchTab('fleet')" id="tab-fleet" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
-                <i class="fa-solid fa-motorcycle mr-1.5"></i>Delivery Fleet
-            </button>
-            <button onclick="switchTab('restaurants')" id="tab-restaurants" class="px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
-                <i class="fa-solid fa-store mr-1.5"></i>Restaurants & Menu
-            </button>
-        </nav>
+        <nav id="nav" class="flex space-x-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/50 overflow-x-auto min-w-0"></nav>
 
-        <div class="flex items-center space-x-3">
+        <div class="flex items-center space-x-3 shrink-0">
             <div id="status-pill" class="px-2.5 py-1 rounded-full text-[10px] font-semibold border border-slate-700 text-slate-400 flex items-center">
                 <span id="status-dot" class="w-1.5 h-1.5 rounded-full bg-slate-500 mr-1.5"></span>
                 <span id="status-text">Not connected</span>
@@ -59,13 +52,13 @@
 
     <main class="flex-1 overflow-y-auto p-6 space-y-6 bg-slate-950">
 
-        <!-- TAB 1: Live Analytics -->
+        <!-- Dashboard -->
         <div id="view-analytics" class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="glass-panel p-5 rounded-2xl">
                     <p class="text-xs font-medium text-slate-400 uppercase">Gross Platform Revenue</p>
                     <h3 id="kpi-revenue" class="text-2xl font-bold text-white mt-1">—</h3>
-                    <p class="text-xs text-emerald-400 mt-2 font-medium"><i class="fa-solid fa-arrow-trend-up mr-1"></i> Live from ORDERS table</p>
+                    <p class="text-xs text-emerald-400 mt-2 font-medium"><i class="fa-solid fa-arrow-trend-up mr-1"></i> Live from ORDERS table (excl. cancelled)</p>
                 </div>
                 <div class="glass-panel p-5 rounded-2xl">
                     <p class="text-xs font-medium text-slate-400 uppercase">Active Customers</p>
@@ -98,42 +91,31 @@
             </div>
         </div>
 
-        <!-- TAB 2: Orders Ledger -->
-        <div id="view-orders" class="hidden space-y-6">
+        <!-- Customers -->
+        <div id="view-customers" class="hidden space-y-6">
             <div class="glass-panel p-5 rounded-2xl">
-                <h3 class="font-bold text-base text-white mb-1">Live Platform Orders Ledger</h3>
-                <p class="text-xs text-slate-400 mb-4">Powered by Flask API endpoint <code class="text-indigo-400">/api/orders</code></p>
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="font-bold text-base text-white">Customer Management</h3>
+                        <p class="text-xs text-slate-400">Search by name, customer ID or city</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <input id="cust-search" oninput="debounce(loadCustomers)" class="inp" style="width:14rem" placeholder="Search customers...">
+                        <button onclick="addCustomer()" class="btn whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i>Add Customer</button>
+                    </div>
+                </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs text-slate-300">
                         <thead class="bg-slate-800 text-slate-400 uppercase">
-                            <tr>
-                                <th class="p-3">Order ID</th>
-                                <th class="p-3">Customer</th>
-                                <th class="p-3">Restaurant</th>
-                                <th class="p-3">Date</th>
-                                <th class="p-3 text-right">Amount</th>
-                            </tr>
+                            <tr><th class="p-3">ID</th><th class="p-3">Name</th><th class="p-3">Email</th><th class="p-3">Phone</th><th class="p-3">City</th><th class="p-3 text-right">Orders</th><th class="p-3 text-right">Actions</th></tr>
                         </thead>
-                        <tbody id="orders-table-body" class="divide-y divide-slate-800 font-mono">
-                            <tr><td colspan="5" class="p-4 text-center text-slate-500">Connecting to Flask server...</td></tr>
-                        </tbody>
+                        <tbody id="cust-body" class="divide-y divide-slate-800 font-mono"></tbody>
                     </table>
                 </div>
             </div>
         </div>
 
-        <!-- TAB 3: Delivery Fleet -->
-        <div id="view-fleet" class="hidden space-y-6">
-            <div class="glass-panel p-5 rounded-2xl">
-                <h3 class="font-bold text-base text-white mb-1">Delivery Fleet Status</h3>
-                <p class="text-xs text-slate-400 mb-4">Powered by Flask API endpoint <code class="text-indigo-400">/api/fleet</code></p>
-                <div id="fleet-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <p class="text-slate-500 font-mono text-xs">Loading fleet drivers...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- TAB 4: Restaurants Catalog -->
+        <!-- Restaurants Catalog (unchanged) -->
         <div id="view-restaurants" class="hidden space-y-6">
             <div class="glass-panel p-5 rounded-2xl">
                 <h3 class="font-bold text-base text-white mb-1">Partner Restaurants Catalog</h3>
@@ -144,17 +126,131 @@
             </div>
         </div>
 
+        <!-- Menu Management -->
+        <div id="view-menu" class="hidden space-y-6">
+            <div class="glass-panel p-5 rounded-2xl">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="font-bold text-base text-white">Menu Management</h3>
+                        <p class="text-xs text-slate-400">Filter by restaurant, search by item name</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <select id="menu-rest" onchange="loadMenu()" class="inp" style="width:12rem"></select>
+                        <input id="menu-search" oninput="debounce(loadMenu)" class="inp" style="width:12rem" placeholder="Search food items...">
+                        <button onclick="addMenuItem()" class="btn whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i>Add Item</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-800 text-slate-400 uppercase">
+                            <tr><th class="p-3">ID</th><th class="p-3">Item</th><th class="p-3">Restaurant</th><th class="p-3">Category</th><th class="p-3 text-right">Price</th><th class="p-3">Availability</th><th class="p-3 text-right">Actions</th></tr>
+                        </thead>
+                        <tbody id="menu-body" class="divide-y divide-slate-800 font-mono"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Place Order -->
+        <div id="view-place" class="hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 glass-panel p-5 rounded-2xl">
+                    <h3 class="font-bold text-base text-white mb-1">Place New Order</h3>
+                    <p class="text-xs text-slate-400 mb-2">Choose a customer and a restaurant, then add available items to the cart.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                        <div><label class="lbl">Customer</label><select id="po-cust" class="inp"></select></div>
+                        <div><label class="lbl">Restaurant</label><select id="po-rest" onchange="loadOrderMenu()" class="inp"></select></div>
+                    </div>
+                    <div id="po-menu" class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <p class="text-slate-500 font-mono text-xs">Select a restaurant to see its menu.</p>
+                    </div>
+                </div>
+                <div class="glass-panel p-5 rounded-2xl h-fit">
+                    <h3 class="font-bold text-base text-white mb-3"><i class="fa-solid fa-cart-shopping mr-2 text-indigo-400"></i>Cart</h3>
+                    <div id="po-cart" class="space-y-2 font-mono text-xs"></div>
+                    <button id="po-btn" onclick="placeOrder()" class="btn w-full mt-4">Place Order</button>
+                    <div id="po-result" class="mt-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Orders Ledger -->
+        <div id="view-orders" class="hidden space-y-6">
+            <div class="glass-panel p-5 rounded-2xl">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div>
+                        <h3 class="font-bold text-base text-white">Live Platform Orders Ledger</h3>
+                        <p class="text-xs text-slate-400">Powered by Flask API endpoint <code class="text-indigo-400">/api/orders</code> · click an order ID for details</p>
+                    </div>
+                    <select id="ord-filter" onchange="loadOrdersTable()" class="inp" style="width:12rem"></select>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-800 text-slate-400 uppercase">
+                            <tr>
+                                <th class="p-3">Order ID</th>
+                                <th class="p-3">Customer</th>
+                                <th class="p-3">Restaurant</th>
+                                <th class="p-3">Date</th>
+                                <th class="p-3 text-right">Amount</th>
+                                <th class="p-3">Status</th>
+                                <th class="p-3">Update Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body" class="divide-y divide-slate-800 font-mono">
+                            <tr><td colspan="7" class="p-4 text-center text-slate-500">Connecting to Flask server...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery Fleet (unchanged) -->
+        <div id="view-fleet" class="hidden space-y-6">
+            <div class="glass-panel p-5 rounded-2xl">
+                <h3 class="font-bold text-base text-white mb-1">Delivery Fleet Status</h3>
+                <p class="text-xs text-slate-400 mb-4">Powered by Flask API endpoint <code class="text-indigo-400">/api/fleet</code></p>
+                <div id="fleet-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <p class="text-slate-500 font-mono text-xs">Loading fleet drivers...</p>
+                </div>
+            </div>
+        </div>
+
     </main>
+
+    <!-- Shared modal (forms, delete confirmation, order details) -->
+    <div id="modal" class="hidden fixed inset-0 z-40 bg-black/70 flex items-center justify-center p-4">
+        <form id="modal-form" onsubmit="submitModal(event)" class="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h3 id="modal-title" class="font-bold text-white text-base mb-2"></h3>
+            <div id="modal-fields"></div>
+            <p id="modal-error" class="text-rose-400 text-xs mt-3"></p>
+            <div class="flex justify-end gap-2 mt-4">
+                <button type="button" onclick="closeModal()" class="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-700 hover:bg-slate-600 text-white">Close</button>
+                <button id="modal-ok" type="submit"></button>
+            </div>
+        </form>
+    </div>
+    <div id="toasts" class="fixed top-20 right-6 z-50 space-y-2"></div>
 
     <script>
         // Change this if your Flask server runs on a different host/port.
         const API_BASE = 'http://127.0.0.1:5000/api';
 
-        const TAB_ACTIVE = "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm";
-        const TAB_IDLE = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all";
+        const TAB_ACTIVE = "px-4 py-1.5 rounded-lg text-xs font-semibold transition-all bg-indigo-600 text-white shadow-sm whitespace-nowrap";
+        const TAB_IDLE = "px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all whitespace-nowrap";
+        const TABS = [
+            ['analytics', 'chart-pie', 'Dashboard'], ['customers', 'users', 'Customers'],
+            ['restaurants', 'store', 'Restaurants'], ['menu', 'burger', 'Menu Management'],
+            ['place', 'cart-shopping', 'Place Order'], ['orders', 'receipt', 'Orders'],
+            ['fleet', 'motorcycle', 'Delivery Fleet']
+        ];
+        const STATUSES = ['Pending', 'Confirmed', 'Preparing', 'Out for Delivery', 'Delivered', 'Cancelled'];
+        const BADGE = { 'Pending': 'amber', 'Confirmed': 'cyan', 'Preparing': 'indigo', 'Out for Delivery': 'purple', 'Delivered': 'emerald', 'Cancelled': 'rose' };
 
         let categoryChart = null;
         let restaurantChart = null;
+        let customers = [], menu = [], restaurantList = [], menuForOrder = [], cart = [];
+        let modalSubmit = null, debounceTimer = null;
 
         const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#ec4899', '#3b82f6', '#8b5cf6', '#f43f5e'];
 
@@ -166,6 +262,25 @@
 
         function money(n) {
             return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function debounce(fn) { clearTimeout(debounceTimer); debounceTimer = setTimeout(fn, 300); }
+
+        function badge(status) {
+            const c = BADGE[status] || 'slate';
+            return `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-${c}-500/10 text-${c}-400 border border-${c}-500/20">${esc(status)}</span>`;
+        }
+
+        function msgRow(cols, msg, cls = 'text-slate-500') {
+            return `<tr><td colspan="${cols}" class="p-4 text-center ${cls}">${esc(msg)}</td></tr>`;
+        }
+
+        function toast(msg, ok = true) {
+            const t = document.createElement('div');
+            t.className = `px-4 py-2 rounded-lg text-xs font-semibold shadow-lg text-white ${ok ? 'bg-emerald-600' : 'bg-rose-600'}`;
+            t.textContent = msg;
+            document.getElementById('toasts').appendChild(t);
+            setTimeout(() => t.remove(), 4000);
         }
 
         function setStatus(state, text) {
@@ -186,14 +301,26 @@
             document.getElementById('status-text').textContent = text;
         }
 
+        // GET helper for list endpoints (must return a JSON array)
         async function fetchJSON(path) {
             const res = await fetch(`${API_BASE}/${path}`, { headers: { 'Accept': 'application/json' } });
-            if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
-            const data = await res.json();
+            const data = await res.json().catch(() => null);
+            if (!res.ok) throw new Error((data && data.error) || `HTTP ${res.status} ${res.statusText}`);
             if (!Array.isArray(data)) {
-                const hint = data && data.error ? data.error : 'Response is not a JSON array';
-                throw new Error(hint);
+                throw new Error(data && data.error ? data.error : 'Response is not a JSON array');
             }
+            return data;
+        }
+
+        // POST / PUT / PATCH / DELETE / GET-object helper
+        async function api(method, path, payload) {
+            const res = await fetch(`${API_BASE}/${path}`, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: payload ? JSON.stringify(payload) : undefined
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             return data;
         }
 
@@ -205,34 +332,51 @@
             </div>`;
         }
 
+        // ---------- modal ----------
+        function openModal(title, bodyHtml, onSubmit, label = 'Save', danger = false) {
+            modalSubmit = onSubmit;
+            document.getElementById('modal-title').textContent = title;
+            document.getElementById('modal-fields').innerHTML = bodyHtml;
+            document.getElementById('modal-error').textContent = '';
+            const ok = document.getElementById('modal-ok');
+            ok.textContent = label;
+            ok.className = 'px-4 py-2 rounded-lg text-xs font-semibold text-white ' +
+                (danger ? 'bg-rose-600 hover:bg-rose-500' : 'bg-indigo-600 hover:bg-indigo-500') + (onSubmit ? '' : ' hidden');
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function closeModal() { document.getElementById('modal').classList.add('hidden'); }
+
+        async function submitModal(e) {
+            e.preventDefault();
+            if (!modalSubmit) return;
+            const data = Object.fromEntries(new FormData(e.target));
+            const ok = document.getElementById('modal-ok');
+            ok.disabled = true;
+            try {
+                await modalSubmit(data);
+                closeModal();
+            } catch (err) {
+                document.getElementById('modal-error').textContent = err.message;
+            }
+            ok.disabled = false;
+        }
+
         // ---------- tabs ----------
         function switchTab(tabId) {
-            ['analytics', 'orders', 'fleet', 'restaurants'].forEach(t => {
+            TABS.forEach(([t]) => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
                 document.getElementById(`tab-${t}`).className = TAB_IDLE;
             });
             document.getElementById(`view-${tabId}`).classList.remove('hidden');
             document.getElementById(`tab-${tabId}`).className = TAB_ACTIVE;
+            if (tabId === 'customers') loadCustomers();
+            if (tabId === 'menu') loadMenu();
+            if (tabId === 'place') loadPlaceForm();
+            if (tabId === 'orders') loadOrdersTable();
         }
 
-        // ---------- renderers ----------
-        function renderOrders(orders) {
-            const body = document.getElementById('orders-table-body');
-            if (orders.length === 0) {
-                body.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-slate-500">No orders found.</td></tr>`;
-                return;
-            }
-            body.innerHTML = orders.map(o => `
-                <tr class="hover:bg-slate-800/40">
-                    <td class="p-3 text-indigo-400 font-bold">#${esc(o.order_id)}</td>
-                    <td class="p-3">${esc(o.customer_name)}</td>
-                    <td class="p-3">${esc(o.restaurant_name)}</td>
-                    <td class="p-3 text-slate-400">${esc(o.order_date_time)}</td>
-                    <td class="p-3 text-right text-emerald-400 font-bold">${money(o.tot_amount)}</td>
-                </tr>
-            `).join('');
-        }
-
+        // ---------- existing renderers ----------
         function renderFleet(fleet) {
             const c = document.getElementById('fleet-container');
             if (fleet.length === 0) {
@@ -273,24 +417,22 @@
             `).join('');
         }
 
-        function renderOrderKPIs(orders) {
+        function renderOrderKPIs(allOrders) {
+            const orders = allOrders.filter(o => o.status !== 'Cancelled');
             const revenue = orders.reduce((s, o) => s + Number(o.tot_amount || 0), 0);
-            const customers = new Set(orders.map(o => o.customer_name)).size;
+            const customersCount = new Set(orders.map(o => o.cust_id)).size;
             document.getElementById('kpi-revenue').textContent = money(revenue);
-            document.getElementById('kpi-customers').textContent = `${customers} Account${customers === 1 ? '' : 's'}`;
+            document.getElementById('kpi-customers').textContent = `${customersCount} Account${customersCount === 1 ? '' : 's'}`;
             document.getElementById('kpi-aov').textContent = orders.length ? money(revenue / orders.length) : money(0);
 
-            // Restaurant share doughnut from real orders
             const byRest = {};
             orders.forEach(o => {
                 const k = o.restaurant_name || 'Unknown';
                 byRest[k] = (byRest[k] || 0) + Number(o.tot_amount || 0);
             });
-            const labels = Object.keys(byRest);
-            const values = Object.values(byRest);
             if (restaurantChart) {
-                restaurantChart.data.labels = labels;
-                restaurantChart.data.datasets[0].data = values;
+                restaurantChart.data.labels = Object.keys(byRest);
+                restaurantChart.data.datasets[0].data = Object.values(byRest);
                 restaurantChart.update();
             }
         }
@@ -298,6 +440,364 @@
         function renderFleetKPI(fleet) {
             const online = fleet.filter(f => f.is_available === true || f.is_available === 'true' || f.is_available === 1).length;
             document.getElementById('kpi-fleet').textContent = `${online} / ${fleet.length} Drivers`;
+        }
+
+        async function loadCategoryChart() {
+            try {
+                const rows = await fetchJSON('categories');
+                if (!rows.length) return;
+                categoryChart.data.labels = rows.map(r => r.category);
+                categoryChart.data.datasets[0].data = rows.map(r => r.revenue);
+                categoryChart.update();
+                document.getElementById('category-note').textContent = 'Live from order_items (JOIN + SUM + GROUP BY), excl. cancelled';
+            } catch (e) { console.error('Categories failed:', e); }
+        }
+
+        // ---------- select boxes ----------
+        function fillSelect(id, html) {
+            const sel = document.getElementById(id);
+            const old = sel.value;
+            sel.innerHTML = html;
+            if ([...sel.options].some(o => o.value === old)) sel.value = old;
+        }
+
+        function restaurantOptions(first) {
+            return (first ? `<option value="">${first}</option>` : '') +
+                restaurantList.map(r => `<option value="${r.hotel_id}">${esc(r.restaurant_name)}</option>`).join('');
+        }
+
+        // ---------- 1. customers ----------
+        function customerForm(c = {}) {
+            return `
+                <label class="lbl">Name</label><input name="cust_name" class="inp" required maxlength="100" value="${esc(c.cust_name)}">
+                <label class="lbl">Email</label><input name="email" type="email" class="inp" required maxlength="120" value="${esc(c.email)}">
+                <label class="lbl">Phone (7-15 digits, optional)</label><input name="phone" class="inp" pattern="[0-9]{7,15}" value="${esc(c.phone)}">
+                <label class="lbl">City</label><input name="city" class="inp" required maxlength="60" value="${esc(c.city)}">`;
+        }
+
+        async function loadCustomers() {
+            const body = document.getElementById('cust-body');
+            body.innerHTML = msgRow(7, 'Loading customers...');
+            try {
+                customers = await fetchJSON('customers?q=' + encodeURIComponent(document.getElementById('cust-search').value.trim()));
+            } catch (e) {
+                body.innerHTML = msgRow(7, e.message, 'text-rose-400');
+                return;
+            }
+            body.innerHTML = customers.length ? customers.map(c => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3 text-indigo-400 font-bold">#${c.cust_id}</td>
+                    <td class="p-3">${esc(c.cust_name)}</td>
+                    <td class="p-3">${esc(c.email)}</td>
+                    <td class="p-3">${c.phone ? esc(c.phone) : '<span class="text-slate-600">—</span>'}</td>
+                    <td class="p-3">${esc(c.city)}</td>
+                    <td class="p-3 text-right text-emerald-400 font-bold">${c.total_orders}</td>
+                    <td class="p-3 text-right whitespace-nowrap">
+                        <button onclick="editCustomer(${c.cust_id})" class="text-indigo-400 hover:text-indigo-300 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteCustomer(${c.cust_id})" class="text-rose-400 hover:text-rose-300" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`).join('') : msgRow(7, 'No customers found.');
+        }
+
+        function addCustomer() {
+            openModal('Add Customer', customerForm(), async d => {
+                await api('POST', 'customers', d);
+                toast('Customer added');
+                loadCustomers();
+            }, 'Add');
+        }
+
+        function editCustomer(id) {
+            const c = customers.find(x => x.cust_id === id);
+            openModal(`Edit Customer #${id}`, customerForm(c), async d => {
+                await api('PUT', `customers/${id}`, d);
+                toast('Customer updated');
+                loadCustomers();
+            });
+        }
+
+        function deleteCustomer(id) {
+            const c = customers.find(x => x.cust_id === id);
+            openModal('Delete Customer',
+                `<p class="text-xs text-slate-300">Delete <b>${esc(c.cust_name)}</b>? This cannot be undone.<br>
+                 <span class="text-slate-500">Customers who already have orders cannot be deleted (foreign key protection).</span></p>`,
+                async () => {
+                    await api('DELETE', `customers/${id}`);
+                    toast('Customer deleted');
+                    loadCustomers();
+                    loadAllData();
+                }, 'Delete', true);
+        }
+
+        // ---------- 2. menu ----------
+        function menuForm(m = {}) {
+            const editing = !!m.item_id;
+            return `
+                <label class="lbl">Restaurant${editing ? ' (cannot be changed)' : ''}</label>
+                <select name="hotel_id" class="inp" ${editing ? 'disabled' : 'required'}>${restaurantOptions()}</select>
+                <label class="lbl">Item name</label><input name="item_name" class="inp" required maxlength="100" value="${esc(m.item_name)}">
+                <label class="lbl">Category</label><input name="category" class="inp" required maxlength="50" value="${esc(m.category)}" placeholder="Main Course, Starter, Tiffin...">
+                <label class="lbl">Price (₹)</label><input name="price" type="number" step="0.01" min="0.01" max="100000" class="inp" required value="${esc(m.price)}">
+                <label class="lbl">Availability</label>
+                <select name="is_available" class="inp">
+                    <option value="true" ${m.is_available === false ? '' : 'selected'}>Available</option>
+                    <option value="false" ${m.is_available === false ? 'selected' : ''}>Unavailable</option>
+                </select>`;
+        }
+
+        function menuPayload(d) {
+            const p = { item_name: d.item_name, category: d.category, price: d.price, is_available: d.is_available === 'true' };
+            if (d.hotel_id) p.hotel_id = d.hotel_id;
+            return p;
+        }
+
+        async function loadMenu() {
+            const body = document.getElementById('menu-body');
+            body.innerHTML = msgRow(7, 'Loading menu...');
+            const h = document.getElementById('menu-rest').value;
+            const q = document.getElementById('menu-search').value.trim();
+            try {
+                menu = await fetchJSON(`menu?hotel_id=${h}&q=${encodeURIComponent(q)}`);
+            } catch (e) {
+                body.innerHTML = msgRow(7, e.message, 'text-rose-400');
+                return;
+            }
+            body.innerHTML = menu.length ? menu.map(m => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3 text-indigo-400 font-bold">#${m.item_id}</td>
+                    <td class="p-3">${esc(m.item_name)}</td>
+                    <td class="p-3">${esc(m.restaurant_name)}</td>
+                    <td class="p-3">${esc(m.category)}</td>
+                    <td class="p-3 text-right text-emerald-400 font-bold whitespace-nowrap">${money(m.price)}
+                        <button onclick="editPrice(${m.item_id})" class="text-slate-400 hover:text-white ml-1" title="Update price"><i class="fa-solid fa-pen-to-square"></i></button></td>
+                    <td class="p-3">
+                        <button onclick="toggleAvailability(${m.item_id}, ${!m.is_available})" title="Click to change"
+                            class="px-2 py-0.5 rounded text-[10px] font-bold ${m.is_available ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}">
+                            ${m.is_available ? 'AVAILABLE' : 'UNAVAILABLE'}</button></td>
+                    <td class="p-3 text-right whitespace-nowrap">
+                        <button onclick="editMenuItem(${m.item_id})" class="text-indigo-400 hover:text-indigo-300 mr-3" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="deleteMenuItem(${m.item_id})" class="text-rose-400 hover:text-rose-300" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>`).join('') : msgRow(7, 'No food items found.');
+        }
+
+        function addMenuItem() {
+            openModal('Add Food Item', menuForm(), async d => {
+                await api('POST', 'menu', menuPayload(d));
+                toast('Food item added');
+                loadMenu();
+                loadAllData();
+            }, 'Add');
+        }
+
+        function editMenuItem(id) {
+            const m = menu.find(x => x.item_id === id);
+            openModal(`Edit Item #${id}`, menuForm(m), async d => {
+                await api('PUT', `menu/${id}`, menuPayload(d));
+                toast('Food item updated');
+                loadMenu();
+            });
+            document.querySelector('#modal-fields select[name=hotel_id]').value = m.hotel_id;
+        }
+
+        function editPrice(id) {
+            const m = menu.find(x => x.item_id === id);
+            openModal(`Update price: ${m.item_name}`,
+                `<label class="lbl">New price (₹)</label><input name="price" type="number" step="0.01" min="0.01" max="100000" class="inp" required value="${esc(m.price)}">`,
+                async d => {
+                    await api('PATCH', `menu/${id}`, { price: d.price });
+                    toast('Price updated');
+                    loadMenu();
+                });
+        }
+
+        async function toggleAvailability(id, value) {
+            try {
+                await api('PATCH', `menu/${id}`, { is_available: value });
+                toast(value ? 'Item is now available' : 'Item is now unavailable');
+                loadMenu();
+            } catch (e) { toast(e.message, false); }
+        }
+
+        function deleteMenuItem(id) {
+            const m = menu.find(x => x.item_id === id);
+            openModal('Delete Food Item',
+                `<p class="text-xs text-slate-300">Delete <b>${esc(m.item_name)}</b>?<br>
+                 <span class="text-slate-500">Items that appear in past orders cannot be deleted. Mark them Unavailable instead.</span></p>`,
+                async () => {
+                    await api('DELETE', `menu/${id}`);
+                    toast('Food item deleted');
+                    loadMenu();
+                    loadAllData();
+                }, 'Delete', true);
+        }
+
+        // ---------- 3. place order ----------
+        async function loadPlaceForm() {
+            try {
+                const list = await fetchJSON('customers');
+                fillSelect('po-cust', '<option value="">Select customer...</option>' +
+                    list.map(c => `<option value="${c.cust_id}">#${c.cust_id} · ${esc(c.cust_name)} (${esc(c.city)})</option>`).join(''));
+            } catch (e) { toast(e.message, false); }
+        }
+
+        async function loadOrderMenu() {
+            cart = [];
+            renderCart();
+            const h = document.getElementById('po-rest').value;
+            const box = document.getElementById('po-menu');
+            if (!h) { box.innerHTML = '<p class="text-slate-500 font-mono text-xs">Select a restaurant to see its menu.</p>'; return; }
+            box.innerHTML = '<p class="text-slate-500 font-mono text-xs">Loading menu...</p>';
+            try {
+                menuForOrder = await fetchJSON(`menu?hotel_id=${h}&available=1`);
+            } catch (e) { box.innerHTML = errorBox('menu', e); return; }
+            box.innerHTML = menuForOrder.length ? menuForOrder.map(m => `
+                <div class="bg-slate-900 p-3 rounded-xl border border-slate-800 flex justify-between items-center gap-2 text-xs">
+                    <div><div class="font-semibold text-white">${esc(m.item_name)}</div>
+                         <div class="text-slate-400">${esc(m.category)} · <span class="text-emerald-400 font-mono">${money(m.price)}</span></div></div>
+                    <button onclick="addToCart(${m.item_id})" class="btn whitespace-nowrap"><i class="fa-solid fa-plus mr-1"></i>Add</button>
+                </div>`).join('') : '<p class="text-slate-500 font-mono text-xs">No available items for this restaurant.</p>';
+        }
+
+        function addToCart(id) {
+            const line = cart.find(l => l.item_id === id);
+            if (line) { line.quantity++; }
+            else {
+                const m = menuForOrder.find(x => x.item_id === id);
+                cart.push({ item_id: id, item_name: m.item_name, price: m.price, quantity: 1 });
+            }
+            renderCart();
+        }
+
+        function changeQty(id, delta) {
+            const line = cart.find(l => l.item_id === id);
+            line.quantity += delta;
+            if (line.quantity <= 0) cart = cart.filter(l => l.item_id !== id);
+            renderCart();
+        }
+
+        function removeFromCart(id) { cart = cart.filter(l => l.item_id !== id); renderCart(); }
+
+        function renderCart() {
+            const el = document.getElementById('po-cart');
+            if (!cart.length) { el.innerHTML = '<p class="text-slate-500">Cart is empty.</p>'; return; }
+            const total = cart.reduce((s, l) => s + l.price * l.quantity, 0);
+            el.innerHTML = cart.map(l => `
+                <div class="bg-slate-900 p-2.5 rounded-lg border border-slate-800">
+                    <div class="flex justify-between"><span class="text-white">${esc(l.item_name)}</span>
+                        <button onclick="removeFromCart(${l.item_id})" class="text-rose-400 hover:text-rose-300" title="Remove"><i class="fa-solid fa-xmark"></i></button></div>
+                    <div class="flex justify-between items-center mt-1.5 text-slate-400">
+                        <span>${money(l.price)} each</span>
+                        <span class="flex items-center gap-2">
+                            <button onclick="changeQty(${l.item_id}, -1)" class="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 text-white">−</button>
+                            <b class="text-white w-5 text-center">${l.quantity}</b>
+                            <button onclick="changeQty(${l.item_id}, 1)" class="w-6 h-6 rounded bg-slate-700 hover:bg-slate-600 text-white">+</button>
+                        </span>
+                        <span class="text-emerald-400 font-bold">${money(l.price * l.quantity)}</span>
+                    </div>
+                </div>`).join('') +
+                `<div class="flex justify-between pt-2 border-t border-slate-700 text-sm"><span class="text-slate-300">Total</span><b class="text-emerald-400">${money(total)}</b></div>`;
+        }
+
+        async function placeOrder() {
+            const cust = document.getElementById('po-cust').value;
+            const rest = document.getElementById('po-rest').value;
+            const result = document.getElementById('po-result');
+            if (!cust) return toast('Please select a customer', false);
+            if (!rest) return toast('Please select a restaurant', false);
+            if (!cart.length) return toast('Add at least one item to the cart', false);
+            const btn = document.getElementById('po-btn');
+            btn.disabled = true;
+            btn.textContent = 'Placing order...';
+            try {
+                // Only ids and quantities are sent. The server reads prices from the database.
+                const r = await api('POST', 'orders', {
+                    cust_id: Number(cust), hotel_id: Number(rest),
+                    items: cart.map(l => ({ item_id: l.item_id, quantity: l.quantity }))
+                });
+                result.innerHTML = `<div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs">
+                    <i class="fa-solid fa-circle-check mr-1"></i> Order <b>#${r.order_id}</b> placed. Total ${money(r.tot_amount)} · Status: ${esc(r.status)}</div>`;
+                toast(`Order #${r.order_id} placed`);
+                cart = [];
+                renderCart();
+                loadAllData();
+            } catch (e) {
+                result.innerHTML = `<div class="p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs">${esc(e.message)}</div>`;
+                toast(e.message, false);
+            }
+            btn.disabled = false;
+            btn.textContent = 'Place Order';
+        }
+
+        // ---------- 5. orders ledger ----------
+        function renderOrders(orders) {
+            const body = document.getElementById('orders-table-body');
+            if (orders.length === 0) {
+                body.innerHTML = msgRow(7, 'No orders found.');
+                return;
+            }
+            body.innerHTML = orders.map(o => `
+                <tr class="hover:bg-slate-800/40">
+                    <td class="p-3"><button onclick="showOrder(${o.order_id})" class="text-indigo-400 font-bold hover:underline">#${esc(o.order_id)}</button></td>
+                    <td class="p-3">${esc(o.customer_name)}</td>
+                    <td class="p-3">${esc(o.restaurant_name)}</td>
+                    <td class="p-3 text-slate-400">${esc((o.order_date_time || '').slice(0, 16))}</td>
+                    <td class="p-3 text-right text-emerald-400 font-bold">${money(o.tot_amount)}</td>
+                    <td class="p-3">${badge(o.status)}</td>
+                    <td class="p-3">
+                        <select class="inp" style="width:auto" data-old="${esc(o.status)}" onchange="changeStatus(${o.order_id}, this)">
+                            ${STATUSES.map(s => `<option ${s === o.status ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadOrdersTable() {
+            const s = document.getElementById('ord-filter').value;
+            document.getElementById('orders-table-body').innerHTML = msgRow(7, 'Loading orders...');
+            try {
+                renderOrders(await fetchJSON('orders' + (s ? `?status=${encodeURIComponent(s)}` : '')));
+            } catch (e) {
+                document.getElementById('orders-table-body').innerHTML = `<tr><td colspan="7" class="p-4">${errorBox('orders', e)}</td></tr>`;
+            }
+        }
+
+        async function changeStatus(id, sel) {
+            try {
+                const r = await api('PUT', `orders/${id}/status`, { status: sel.value });
+                toast(`Order #${id}: ${r.old_status} → ${r.status}`);
+                loadAllData();
+            } catch (e) {
+                sel.value = sel.dataset.old;   // undo the dropdown change
+                toast(e.message, false);
+            }
+        }
+
+        async function showOrder(id) {
+            try {
+                const d = await api('GET', `orders/${id}`);
+                const o = d.order;
+                const items = d.items.map(i => `<tr><td class="py-1">${esc(i.item_name)}</td><td class="text-right">${i.quantity}</td>
+                    <td class="text-right">${money(i.price)}</td><td class="text-right text-emerald-400">${money(i.line_total)}</td></tr>`).join('');
+                const hist = d.history.map(h => `<li>${h.old_status ? esc(h.old_status) : '<i>(new)</i>'} → <b class="text-white">${esc(h.new_status)}</b>
+                    <span class="text-slate-500">· ${esc(h.changed_at.slice(0, 16))}</span></li>`).join('');
+                openModal(`Order #${o.order_id}`, `
+                    <div class="text-xs text-slate-300 space-y-1 mb-3">
+                        <div>Customer: <b class="text-white">${esc(o.customer_name)}</b> (${esc(o.city)})</div>
+                        <div>Restaurant: <b class="text-white">${esc(o.restaurant_name)}</b></div>
+                        <div>Placed: ${esc(o.order_date_time.slice(0, 16))}</div>
+                        <div>Delivery agent: ${o.agent_id ? 'Agent #' + o.agent_id : '<span class="text-slate-500">Not assigned</span>'}</div>
+                        <div>Status: ${badge(o.status)}</div>
+                    </div>
+                    <table class="w-full text-xs text-slate-300 font-mono">
+                        <thead class="text-slate-500 uppercase"><tr><th class="text-left">Item</th><th class="text-right">Qty</th><th class="text-right">Price</th><th class="text-right">Total</th></tr></thead>
+                        <tbody>${items}</tbody>
+                    </table>
+                    <div class="flex justify-between border-t border-slate-700 mt-2 pt-2 text-sm"><span>Order total</span><b class="text-emerald-400">${money(o.tot_amount)}</b></div>
+                    <h4 class="text-xs font-semibold text-slate-400 uppercase mt-4 mb-1">Status history</h4>
+                    <ul class="text-xs text-slate-400 space-y-0.5">${hist}</ul>`, null);
+            } catch (e) { toast(e.message, false); }
         }
 
         // ---------- main loader ----------
@@ -319,13 +819,10 @@
             let failures = 0;
 
             if (oRes.status === 'fulfilled') {
-                renderOrders(oRes.value);
                 renderOrderKPIs(oRes.value);
             } else {
                 failures++;
                 console.error('Orders failed:', oRes.reason);
-                document.getElementById('orders-table-body').innerHTML =
-                    `<tr><td colspan="5" class="p-4">${errorBox('orders', oRes.reason)}</td></tr>`;
             }
 
             if (fRes.status === 'fulfilled') {
@@ -338,12 +835,22 @@
             }
 
             if (rRes.status === 'fulfilled') {
+                restaurantList = rRes.value;
                 renderRestaurants(rRes.value);
+                fillSelect('menu-rest', restaurantOptions('All restaurants'));
+                fillSelect('po-rest', restaurantOptions('Select restaurant...'));
             } else {
                 failures++;
                 console.error('Restaurants failed:', rRes.reason);
                 document.getElementById('restaurant-container').innerHTML = errorBox('restaurants', rRes.reason);
             }
+
+            // Refresh the other sections (each one handles its own errors)
+            loadOrdersTable();
+            loadCustomers();
+            loadMenu();
+            loadPlaceForm();
+            loadCategoryChart();
 
             if (failures === 0) {
                 setStatus('ok', 'Connected · ' + new Date().toLocaleTimeString());
@@ -360,6 +867,13 @@
 
         // ---------- init ----------
         window.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('nav').innerHTML = TABS.map(([id, icon, label], i) =>
+                `<button onclick="switchTab('${id}')" id="tab-${id}" class="${i === 0 ? TAB_ACTIVE : TAB_IDLE}">
+                    <i class="fa-solid fa-${icon} mr-1.5"></i>${label}</button>`).join('');
+            document.getElementById('ord-filter').innerHTML = '<option value="">All statuses</option>' +
+                STATUSES.map(s => `<option>${s}</option>`).join('');
+            renderCart();
+
             categoryChart = new Chart(document.getElementById('categoryChart').getContext('2d'), {
                 type: 'bar',
                 data: {
